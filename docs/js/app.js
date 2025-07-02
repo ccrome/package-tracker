@@ -117,6 +117,15 @@ class PackageTrackerApp {
             return;
         }
 
+        // Ensure carriers are loaded before adding packages
+        if (trackerRegistry.carriers.size === 0) {
+            console.log('🔄 Ensuring carriers are loaded before adding packages...');
+            trackerRegistry.initializeCarriers();
+            
+            // Short delay to allow carriers to register
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         // Parse tracking numbers from input
         const trackingNumbers = trackerRegistry.parseTrackingNumbers(inputText);
         

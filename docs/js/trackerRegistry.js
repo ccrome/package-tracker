@@ -300,6 +300,27 @@ setTimeout(() => {
     window.retryCarrierInitialization();
 }, 500);
 
+// Additional initialization attempts to ensure carriers are loaded
+setTimeout(() => {
+    if (window.trackerRegistry.carriers.size === 0) {
+        console.log('Second retry of carrier initialization...');
+        window.trackerRegistry.initializeCarriers();
+    }
+}, 1000);
+
+// Final attempt after DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            window.retryCarrierInitialization();
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        window.retryCarrierInitialization();
+    }, 100);
+}
+
 // Add debug function for testing carrier detection
 window.testCarrierDetection = function(trackingNumber) {
     console.log(`Testing carrier detection for: ${trackingNumber}`);

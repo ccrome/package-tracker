@@ -42,6 +42,31 @@ class StorageManager {
     }
 
     /**
+     * Hydrate a package with carrier loading retry for new packages
+     * @param {Object} rawPackage - Minimal package data
+     * @returns {Object} Full package object with computed fields
+     */
+    hydratePackageWithRetry(rawPackage) {
+        // Ensure carriers are loaded before hydrating new packages
+        if (window.trackerRegistry && window.trackerRegistry.carriers.size === 0) {
+            console.log('🔄 Carriers not loaded yet for new package, initializing...');
+            window.trackerRegistry.initializeCarriers();
+            
+            // If still no carriers after init, wait a bit and try again
+            if (window.trackerRegistry.carriers.size === 0) {
+                console.log('🕐 Waiting for carriers to load before hydrating new package...');
+                setTimeout(() => {
+                    if (window.app && window.app.renderPackages) {
+                        window.app.renderPackages();
+                    }
+                }, 200);
+            }
+        }
+        
+        return this.hydratePackage(rawPackage);
+    }
+
+    /**
      * Hydrate a package with computed data
      * @param {Object} rawPackage - Minimal package data
      * @returns {Object} Full package object with computed fields
@@ -49,6 +74,10 @@ class StorageManager {
     hydratePackage(rawPackage) {
         // Detect carrier dynamically (with safety check)
         let carrier = null;
+        
+        console.log(`🔍 Hydrating package: ${rawPackage.trackingNumber}`);
+        console.log(`Available carriers: ${window.trackerRegistry ? window.trackerRegistry.carriers.size : 'N/A'}`);
+        
         try {
             if (window.trackerRegistry && window.trackerRegistry.detectCarrier) {
                 // If no carriers are loaded, try to retry initialization
@@ -58,10 +87,15 @@ class StorageManager {
                 }
                 carrier = window.trackerRegistry.detectCarrier(rawPackage.trackingNumber);
                 
-                // Debug logging for unknown packages
-                if (!carrier) {
-                    console.log(`Warning: No carrier detected for ${rawPackage.trackingNumber} (carriers available: ${window.trackerRegistry.carriers.size})`);
+                // Enhanced debug logging
+                if (carrier) {
+                    console.log(`✅ Carrier detected: ${carrier.name} (${carrier.code}) for ${rawPackage.trackingNumber}`);
+                } else {
+                    console.log(`❌ No carrier detected for ${rawPackage.trackingNumber} (carriers available: ${window.trackerRegistry.carriers.size})`);
+                    console.log(`Available carrier codes:`, Array.from(window.trackerRegistry.carriers.keys()));
                 }
+            } else {
+                console.log('❌ TrackerRegistry not available during hydration');
             }
         } catch (error) {
             console.warn('Error detecting carrier:', error);
@@ -139,8 +173,8 @@ class StorageManager {
         packages.push(newPackage);
         this.savePackages(packages);
         
-        // Return hydrated package
-        return this.hydratePackage(newPackage);
+        // Return hydrated package with carrier loading retry
+        return this.hydratePackageWithRetry(newPackage);
     }
 
     /**
@@ -482,6 +516,41 @@ window.fixCarrierDetection = function() {
         window.app.renderPackages();
     }
     console.log('✓ Carrier detection fixed! Packages should now show correct carriers.');
+};
+
+// Comprehensive debug function
+window.debugPackageCarriers = function() {
+    console.log('🔍 === PACKAGE CARRIER DEBUG ===');
+    
+    // Check TrackerRegistry status
+    console.log(`TrackerRegistry available: ${!!window.trackerRegistry}`);
+    console.log(`Carriers loaded: ${window.trackerRegistry ? window.trackerRegistry.carriers.size : 'N/A'}`);
+    if (window.trackerRegistry) {
+        console.log(`Available carriers:`, Array.from(window.trackerRegistry.carriers.keys()));
+    }
+    
+    // Check packages
+    const rawPackages = window.storageManager.getRawPackages();
+    console.log(`\nRaw packages in storage: ${rawPackages.length}`);
+    
+    const hydratedPackages = window.storageManager.getPackages();
+    console.log(`Hydrated packages: ${hydratedPackages.length}`);
+    
+    hydratedPackages.forEach((pkg, index) => {
+        console.log(`\n📦 Package ${index + 1}:`);
+        console.log(`  Tracking: ${pkg.trackingNumber}`);
+        console.log(`  Carrier: ${pkg.carrier}`);
+        console.log(`  Carrier Name: ${pkg.carrierName}`);
+        console.log(`  Tracking URL: ${pkg.trackingUrl}`);
+        
+        // Test carrier detection manually
+        if (window.trackerRegistry) {
+            const detectedCarrier = window.trackerRegistry.detectCarrier(pkg.trackingNumber);
+            console.log(`  Manual detection: ${detectedCarrier ? `${detectedCarrier.name} (${detectedCarrier.code})` : 'None'}`);
+        }
+    });
+    
+    console.log('\n=== END DEBUG ===');
 };
 
 // Run migration after DOM and all scripts are loaded
