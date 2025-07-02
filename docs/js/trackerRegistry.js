@@ -67,6 +67,16 @@ class TrackerRegistry {
         if (!this.carriers.has(carrier.code)) {
             this.carriers.set(carrier.code, carrier);
             console.log(`Registered carrier: ${carrier.name} (${carrier.code})`);
+            
+            // If this is the first carrier registered, trigger re-detection of any cached packages
+            if (this.carriers.size === 1 && window.storageManager) {
+                console.log('First carrier registered - checking for packages needing re-detection...');
+                setTimeout(() => {
+                    if (window.storageManager && window.storageManager.forceRedetectCarriers) {
+                        window.storageManager.forceRedetectCarriers();
+                    }
+                }, 100);
+            }
         }
     }
 

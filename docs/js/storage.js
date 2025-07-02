@@ -57,6 +57,11 @@ class StorageManager {
                     window.trackerRegistry.initializeCarriers();
                 }
                 carrier = window.trackerRegistry.detectCarrier(rawPackage.trackingNumber);
+                
+                // Debug logging for unknown packages
+                if (!carrier) {
+                    console.log(`Warning: No carrier detected for ${rawPackage.trackingNumber} (carriers available: ${window.trackerRegistry.carriers.size})`);
+                }
             }
         } catch (error) {
             console.warn('Error detecting carrier:', error);
