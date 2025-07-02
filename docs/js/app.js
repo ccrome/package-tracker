@@ -451,9 +451,6 @@ class PackageTrackerApp {
                     <button class="btn-small btn-complete" data-action="complete">
                         <i class="fas fa-check-circle"></i> ${packageData.isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
                     </button>
-                    <button class="btn-small btn-remove" data-action="remove">
-                        <i class="fas fa-trash"></i> Remove
-                    </button>
                 </div>
             </div>
         `;
@@ -482,9 +479,6 @@ class PackageTrackerApp {
                 case 'complete':
                     this.handleCompletePackage(packageId);
                     break;
-                case 'remove':
-                    this.handleRemovePackage(packageId);
-                    break;
             }
         });
 
@@ -505,16 +499,7 @@ class PackageTrackerApp {
         });
     }
 
-    /**
-     * Handle removing a package
-     */
-    handleRemovePackage(packageId) {
-        if (confirm('Are you sure you want to remove this package from tracking?')) {
-            storageManager.removePackage(packageId);
-            this.renderPackages();
-            this.showSuccess('Package removed from tracking');
-        }
-    }
+
 
     /**
      * Handle completing/uncompleting a package

@@ -140,14 +140,7 @@ header p {
     transform: translateY(-1px);
 }
 
-.btn-remove {
-    background: var(--error-color);
-    color: white;
-}
 
-.btn-remove:hover {
-    background: #dc2626;
-}
 
 .btn-complete {
     background: var(--success-color);

@@ -197,18 +197,7 @@ class StorageManager {
         return null;
     }
 
-    /**
-     * Remove a package
-     * @param {string} packageId - Package ID
-     */
-    removePackage(packageId) {
-        const packages = this.getRawPackages();
-        const filteredPackages = packages.filter(pkg => pkg.id !== packageId);
-        this.savePackages(filteredPackages);
-        
-        // Clean up cache for this package
-        this.clearCachedTrackingData(packageId);
-    }
+
 
     /**
      * Get package by tracking number
@@ -263,19 +252,7 @@ class StorageManager {
         }
     }
 
-    /**
-     * Clear cached tracking data for a package
-     * @param {string} packageId - Package ID
-     */
-    clearCachedTrackingData(packageId) {
-        try {
-            const cache = JSON.parse(localStorage.getItem(this.cacheKey) || '{}');
-            delete cache[packageId];
-            localStorage.setItem(this.cacheKey, JSON.stringify(cache));
-        } catch (error) {
-            console.error('Error clearing cache:', error);
-        }
-    }
+
 
     /**
      * Compute completion status based on tracking data
