@@ -1,0 +1,98 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: package-tracker
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/minScale: "0"
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/memory: "512Mi"
+        run.googleapis.com/cpu: "1000m"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/PROJECT_ID/package-tracker:latest
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        # API credentials from Google Secret Manager
+        # Uncomment and update after running ./setup-secrets.sh
+        # - name: USPS_CLIENT_ID
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: usps-client-id
+        # - name: USPS_CLIENT_SECRET
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: usps-client-secret
+        # - name: UPS_API_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: ups-api-key
+        # - name: UPS_CLIENT_ID
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: ups-client-id
+        # - name: UPS_CLIENT_SECRET
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: ups-client-secret
+        # - name: FEDEX_API_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: fedex-api-key
+        # - name: FEDEX_CLIENT_ID
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: fedex-client-id
+        # - name: FEDEX_CLIENT_SECRET
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: fedex-client-secret
+        # - name: DHL_API_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       key: latest
+        #       name: dhl-api-key
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/track/ping
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/track/ping
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          periodSeconds: 10
+  traffic:
+  - percent: 100
+    latestRevision: true 

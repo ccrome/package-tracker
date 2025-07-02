@@ -6,14 +6,19 @@ class PackageTrackerApp {
         this.loadingElement = document.getElementById('loadingIndicator');
         this.packagesContainer = document.getElementById('packagesContainer');
         this.emptyState = document.getElementById('emptyState');
+        this.openAllSection = document.getElementById('openAllSection');
         this.trackingInput = document.getElementById('trackingInput');
         this.addPackagesBtn = document.getElementById('addPackages');
         this.refreshAllBtn = document.getElementById('refreshAll');
         this.showCompletedCheckbox = document.getElementById('showCompleted');
         this.clearAllDataBtn = document.getElementById('clearAllData');
+        this.openAllTabsBtn = document.getElementById('openAllTabs');
         
-        this.settings = storageManager.getSettings();
+        this.packages = [];
+        this.settings = { showCompleted: false };
         this.isLoading = false;
+        this.isBackendAvailable = false;
+        this.currentMode = 'standalone';
         
         this.init();
     }
@@ -21,14 +26,40 @@ class PackageTrackerApp {
     /**
      * Initialize the application
      */
-    init() {
-        this.bindEvents();
-        this.loadSettings();
-        this.renderPackages();
-        this.cleanupOldPackages();
-        
-        console.log('Package Tracker App initialized');
-        console.log('Tracker Registry Stats:', trackerRegistry.getStats());
+    async init() {
+        try {
+            // Load stored data (this will now properly detect carriers)
+            this.packages = storageManager.getPackages();
+            this.settings = storageManager.getSettings();
+            
+            // Set up event listeners
+            this.bindEvents();
+            
+            // Listen for backend status changes
+            window.addEventListener('backendStatusChange', (event) => {
+                this.handleBackendStatusChange(event.detail);
+            });
+            
+            // Wait for backend service to initialize
+            if (window.backendService) {
+                await window.backendService.init();
+            }
+            
+            // Initial render
+            this.renderPackages();
+            this.loadSettings();
+            this.updateModeIndicator();
+            
+            // Set initial refresh button visibility
+            this.refreshAllBtn.style.display = this.isBackendAvailable ? 'inline-flex' : 'none';
+            
+            // Clean up old packages
+            this.cleanupOldPackages();
+            
+            console.log('Package Tracker App initialized');
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+        }
     }
 
     /**
@@ -43,6 +74,9 @@ class PackageTrackerApp {
         
         // Clear all data button
         this.clearAllDataBtn.addEventListener('click', () => this.handleClearAllData());
+        
+        // Open all tabs button
+        this.openAllTabsBtn.addEventListener('click', () => this.handleOpenAllTabs());
         
         // Show completed checkbox
         this.showCompletedCheckbox.addEventListener('change', (e) => {
@@ -105,11 +139,8 @@ class PackageTrackerApp {
         // Add packages to storage first (so they appear immediately)
         const newPackages = [];
         for (const trackingNumber of newTrackingNumbers) {
-            const carrier = trackerRegistry.detectCarrier(trackingNumber);
             const packageData = {
-                trackingNumber,
-                carrier: carrier ? carrier.code : 'unknown',
-                trackingUrl: carrier ? carrier.getTrackingUrl(trackingNumber) : ''
+                trackingNumber
             };
             
             const newPackage = storageManager.addPackage(packageData);
@@ -183,6 +214,64 @@ class PackageTrackerApp {
     }
 
     /**
+     * Handle opening all packages in new tabs
+     */
+    handleOpenAllTabs() {
+        try {
+            const packages = storageManager.getPackages();
+            const filteredPackages = this.settings.showCompleted 
+                ? packages 
+                : packages.filter(pkg => !pkg.isCompleted);
+            
+            const packagesWithUrls = filteredPackages.filter(pkg => pkg.trackingUrl);
+            
+            if (packagesWithUrls.length === 0) {
+                this.showError('No packages have tracking URLs available');
+                return;
+            }
+
+            // Show confirmation for many tabs
+            if (packagesWithUrls.length > 5) {
+                const confirmation = confirm(
+                    `You are about to open ${packagesWithUrls.length} new tabs.\n\n` +
+                    'This may be blocked by your browser\'s popup blocker.\n' +
+                    'Would you like to continue?'
+                );
+                if (!confirmation) return;
+            }
+
+            // Open each package URL in a new tab
+            let openedCount = 0;
+            packagesWithUrls.forEach((packageData, index) => {
+                if (packageData.trackingUrl) {
+                    // Add a small delay between opens to prevent browser blocking
+                    setTimeout(() => {
+                        try {
+                            window.open(packageData.trackingUrl, '_blank');
+                            openedCount++;
+                        } catch (error) {
+                            console.error(`Failed to open tab for ${packageData.trackingNumber}:`, error);
+                        }
+                    }, index * 100); // 100ms delay between each tab
+                }
+            });
+
+            // Show success message
+            setTimeout(() => {
+                if (openedCount > 0) {
+                    this.showSuccess(`Opened ${packagesWithUrls.length} package${packagesWithUrls.length > 1 ? 's' : ''} in new tabs`);
+                } else {
+                    this.showError('Failed to open tabs. Please check your browser settings and try again.');
+                }
+            }, packagesWithUrls.length * 100 + 500);
+
+        } catch (error) {
+            console.error('Error opening all tabs:', error);
+            this.showError('Error opening tabs. Please try again.');
+        }
+    }
+
+    /**
      * Track packages in background and update UI
      */
     async trackPackagesInBackground(packageIds) {
@@ -197,7 +286,7 @@ class PackageTrackerApp {
             // Track packages in parallel
             const trackingPromises = packagesToTrack.map(async (packageData) => {
                 try {
-                    // Ensure carrier is a string, not an object
+                    // Handle both string and object carrier values
                     const carrierCode = typeof packageData.carrier === 'string' 
                         ? packageData.carrier 
                         : packageData.carrier?.code || 'unknown';
@@ -207,25 +296,23 @@ class PackageTrackerApp {
                         carrierCode
                     );
                     
-                    // Update package with new tracking info
-                    const updateData = {
+                    // Update package tracking data (cached, not persistent)
+                    const trackingData = {
                         ...result,
-                        lastChecked: new Date().toISOString(),
-                        // Preserve original carrier info
-                        carrier: packageData.carrier
+                        lastChecked: new Date().toISOString()
                     };
                     
-                    if (result.status === 'delivered' && !packageData.deliveredDate) {
-                        updateData.deliveredDate = result.deliveredDate || new Date().toISOString();
+                    if (result.status === 'delivered' && !result.deliveredDate) {
+                        trackingData.deliveredDate = new Date().toISOString();
                     }
                     
-                    return storageManager.updatePackage(packageData.id, updateData);
+                    return storageManager.updatePackageTracking(packageData.id, trackingData);
                     
                 } catch (error) {
                     console.error(`Error tracking package ${packageData.trackingNumber}:`, error);
-                    return storageManager.updatePackage(packageData.id, {
+                    return storageManager.updatePackageTracking(packageData.id, {
                         status: 'unavailable',
-                        statusDescription: `Click "View on ${packageData.carrier?.toUpperCase() || 'Carrier'}" below for official tracking information.`,
+                        statusDescription: `Click "View on ${packageData.carrierName || 'Carrier'}" below for official tracking information.`,
                         lastChecked: new Date().toISOString(),
                         dataUnavailable: true
                     });
@@ -248,6 +335,8 @@ class PackageTrackerApp {
      */
     renderPackages() {
         const packages = storageManager.getPackages();
+        
+        // Filter by completed status (hide completed by default)
         const filteredPackages = this.settings.showCompleted 
             ? packages 
             : packages.filter(pkg => !pkg.isCompleted);
@@ -262,11 +351,25 @@ class PackageTrackerApp {
         if (filteredPackages.length === 0) {
             this.packagesContainer.style.display = 'none';
             this.emptyState.style.display = 'block';
+            this.openAllSection.classList.add('hidden');
             return;
         }
 
         this.packagesContainer.style.display = 'grid';
         this.emptyState.style.display = 'none';
+
+        // Show/hide open all button based on packages with tracking URLs
+        const packagesWithUrls = filteredPackages.filter(pkg => pkg.trackingUrl);
+        if (packagesWithUrls.length > 0) {
+            this.openAllSection.classList.remove('hidden');
+            // Update button text with count
+            const buttonText = packagesWithUrls.length === 1 
+                ? 'Open Package in New Tab' 
+                : `Open All ${packagesWithUrls.length} Packages in New Tabs`;
+            this.openAllTabsBtn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${buttonText}`;
+        } else {
+            this.openAllSection.classList.add('hidden');
+        }
 
         this.packagesContainer.innerHTML = filteredPackages.map(pkg => 
             this.renderPackageCard(pkg)
@@ -282,7 +385,17 @@ class PackageTrackerApp {
     renderPackageCard(packageData) {
         const carrier = trackerRegistry.getCarrier(packageData.carrier);
         const carrierName = carrier ? carrier.name : 'Unknown';
-        const carrierColor = carrier ? carrier.color : '#64748b';
+        
+        // Assign colors based on carrier
+        let carrierColor = '#64748b'; // default gray
+        if (carrier) {
+            switch (carrier.code) {
+                case 'usps': carrierColor = '#004B87'; break;
+                case 'ups': carrierColor = '#8B4513'; break;
+                case 'fedex': carrierColor = '#4d148c'; break;
+                case 'dhl': carrierColor = '#FFD320'; break;
+            }
+        }
         
         const lastChecked = packageData.lastChecked 
             ? new Date(packageData.lastChecked).toLocaleString()
@@ -303,6 +416,11 @@ class PackageTrackerApp {
                 </div>
                 
                 <div class="tracking-number">${packageData.trackingNumber}</div>
+                
+                <div class="package-notes">
+                    <div class="notes-label"><i class="fas fa-sticky-note"></i> Notes:</div>
+                    <textarea class="notes-input" placeholder="Add your notes here..." maxlength="500" data-package-id="${packageData.id}">${this.escapeHtml(packageData.notes || '')}</textarea>
+                </div>
                 
                 <div class="status-info">
                     ${packageData.dataUnavailable ? `
@@ -327,9 +445,12 @@ class PackageTrackerApp {
                     ${packageData.trackingUrl ? `<a href="${packageData.trackingUrl}" target="_blank" class="btn-small btn-link">
                         <i class="fas fa-external-link-alt"></i> View on ${carrierName}
                     </a>` : ''}
-                    ${!packageData.dataUnavailable ? `<button class="btn-small btn-refresh" data-action="refresh">
+                    ${!packageData.dataUnavailable && this.isBackendAvailable ? `<button class="btn-small btn-refresh" data-action="refresh">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>` : ''}
+                    <button class="btn-small btn-complete" data-action="complete">
+                        <i class="fas fa-check-circle"></i> ${packageData.isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
+                    </button>
                     <button class="btn-small btn-remove" data-action="remove">
                         <i class="fas fa-trash"></i> Remove
                     </button>
@@ -358,9 +479,28 @@ class PackageTrackerApp {
                 case 'refresh':
                     await this.trackPackagesInBackground([packageId]);
                     break;
+                case 'complete':
+                    this.handleCompletePackage(packageId);
+                    break;
                 case 'remove':
                     this.handleRemovePackage(packageId);
                     break;
+            }
+        });
+
+        // Handle auto-save for notes
+        this.packagesContainer.addEventListener('blur', async (e) => {
+            if (e.target.classList.contains('notes-input')) {
+                const packageId = e.target.dataset.packageId;
+                const notes = e.target.value.trim();
+                await this.handleAutoSaveNotes(packageId, notes);
+            }
+        }, true);
+
+        // Optional: Save on Enter key (but allow Shift+Enter for new lines)
+        this.packagesContainer.addEventListener('keydown', async (e) => {
+            if (e.target.classList.contains('notes-input') && e.key === 'Enter' && !e.shiftKey) {
+                e.target.blur(); // This will trigger the blur event above
             }
         });
     }
@@ -374,6 +514,64 @@ class PackageTrackerApp {
             this.renderPackages();
             this.showSuccess('Package removed from tracking');
         }
+    }
+
+    /**
+     * Handle completing/uncompleting a package
+     */
+    handleCompletePackage(packageId) {
+        const packages = storageManager.getPackages();
+        const packageData = packages.find(pkg => pkg.id === packageId);
+        
+        if (packageData) {
+            const isCurrentlyCompleted = packageData.isCompleted || false;
+            const updatedPackage = storageManager.updatePackageCompleted(packageId, !isCurrentlyCompleted);
+            
+            if (updatedPackage) {
+                this.renderPackages();
+                this.showSuccess(isCurrentlyCompleted ? 'Package marked incomplete' : 'Package marked complete');
+            } else {
+                this.showError('Failed to mark package');
+            }
+        }
+    }
+
+    /**
+     * Handle auto-save for notes
+     */
+    async handleAutoSaveNotes(packageId, notes) {
+        try {
+            // Get current package to check if notes actually changed
+            const packages = storageManager.getPackages();
+            const currentPackage = packages.find(pkg => pkg.id === packageId);
+            
+            if (!currentPackage) {
+                console.error('Package not found for auto-save');
+                return;
+            }
+            
+            // Only save if notes actually changed
+            if ((currentPackage.notes || '') !== notes) {
+                const updatedPackage = storageManager.updatePackageNotes(packageId, notes);
+                
+                if (updatedPackage) {
+                    console.log('Notes auto-saved');
+                } else {
+                    console.error('Failed to auto-save notes');
+                }
+            }
+        } catch (error) {
+            console.error('Error auto-saving notes:', error);
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**
@@ -431,6 +629,46 @@ class PackageTrackerApp {
      */
     cleanupOldPackages() {
         storageManager.cleanupOldPackages();
+    }
+
+    /**
+     * Handle backend status changes
+     */
+    handleBackendStatusChange(status) {
+        this.isBackendAvailable = status.available;
+        this.currentMode = status.mode;
+        
+        console.log(`App mode changed to: ${this.currentMode}`);
+        this.updateModeIndicator();
+        
+        // Show/hide refresh all button based on backend availability
+        this.refreshAllBtn.style.display = this.isBackendAvailable ? 'inline-flex' : 'none';
+        
+        // Re-render packages to show updated capabilities
+        this.renderPackages();
+    }
+
+    /**
+     * Update mode indicator in UI
+     */
+    updateModeIndicator() {
+        const modeIndicator = document.getElementById('mode-indicator');
+        if (modeIndicator) {
+            const modeText = this.isBackendAvailable ? 
+                '<span class="status-indicator backend">🟢 Server Mode</span>' : 
+                '<span class="status-indicator standalone">🔗 Link Mode</span>';
+            
+            const modeDescription = this.isBackendAvailable ?
+                'Real-time tracking data available' :
+                'Links to official carrier tracking pages';
+                
+            modeIndicator.innerHTML = `
+                <div class="mode-status">
+                    ${modeText}
+                    <small>${modeDescription}</small>
+                </div>
+            `;
+        }
     }
 }
 

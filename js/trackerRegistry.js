@@ -27,8 +27,10 @@ class TrackerRegistry {
             throw new Error('Carrier must extend BaseCarrier');
         }
         
-        this.carriers.set(carrier.code, carrier);
-        console.log(`Registered carrier: ${carrier.name} (${carrier.code})`);
+        if (!this.carriers.has(carrier.code)) {
+            this.carriers.set(carrier.code, carrier);
+            console.log(`Registered carrier: ${carrier.name} (${carrier.code})`);
+        }
     }
 
     /**
@@ -70,13 +72,11 @@ class TrackerRegistry {
         ];
 
         for (const carrier of orderedCarriers) {
-            if (carrier && carrier.canHandle(cleaned)) {
-                console.log(`Detected carrier ${carrier.name} for tracking number: ${trackingNumber}`);
+            if (carrier && carrier.matches(cleaned)) {
                 return carrier;
             }
         }
 
-        console.log(`No carrier detected for tracking number: ${trackingNumber}`);
         return null;
     }
 
@@ -104,11 +104,11 @@ class TrackerRegistry {
             }
 
             console.log(`Tracking ${trackingNumber} with ${carrier.name}`);
-            const result = await carrier.getTrackingInfo(trackingNumber);
+            const result = await carrier.track(trackingNumber);
             
             // Add carrier info to result
-            result.carrier = carrier.getInfo();
-            result.trackingUrl = carrier.getTrackingUrl(trackingNumber);
+            result.carrier = { name: carrier.name, code: carrier.code };
+            result.trackingUrl = carrier.getUrl(trackingNumber);
             
             return result;
             
@@ -230,11 +230,13 @@ class TrackerRegistry {
         
         return {
             valid: carrier !== null,
-            carrier: carrier ? carrier.getInfo() : null,
+            carrier: carrier ? { name: carrier.name, code: carrier.code } : null,
             error: carrier ? null : 'Unknown tracking number format'
         };
     }
 }
 
-// Create global instance
-window.trackerRegistry = new TrackerRegistry(); 
+// Export the class and create global instance
+window.TrackerRegistry = TrackerRegistry;
+window.trackerRegistry = new TrackerRegistry();
+window.trackerRegistry.initializeCarriers(); 

@@ -13,6 +13,9 @@
         <header>
             <h1><i class="fas fa-box"></i> Package Tracker</h1>
             <p>Track all your packages in one place</p>
+            <div id="mode-indicator" class="mode-indicator">
+                <!-- Mode status will be updated by JavaScript -->
+            </div>
         </header>
 
         <div class="add-package-section">
@@ -55,9 +58,16 @@
             <h3>No packages to track</h3>
             <p>Add some tracking numbers above to get started!</p>
         </div>
+
+        <div id="openAllSection" class="open-all-section hidden">
+            <button id="openAllTabs" class="btn-open-all">
+                <i class="fas fa-external-link-alt"></i> Open All Packages in New Tabs
+            </button>
+        </div>
     </div>
 
     <script src="js/storage.js"></script>
+    <script src="js/backend.js"></script>
     <script src="js/carriers/base.js"></script>
     <script src="js/carriers/usps.js"></script>
     <script src="js/carriers/ups.js"></script>

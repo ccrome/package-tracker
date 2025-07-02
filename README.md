@@ -1,165 +1,291 @@
 # Package Tracker
 
-A client-side web application for tracking packages from multiple carriers (USPS, UPS, FedEx, DHL) in one convenient interface.
+A JavaScript application that tracks package status from multiple carriers (USPS, UPS, FedEx, DHL) designed to work as both a standalone web page and as a client-server application.
+
+## 🚨 Important API Migration Notice
+
+**USPS API Change Required**: The USPS Web Tools API is being **retired on January 25, 2026**. This application needs to be updated to use the new USPS APIs.
+
+### Migration Details:
+- **Old API**: USPS Web Tools (XML-based) - Being retired 
+- **New API**: [USPS APIs Developer Portal](https://developer.usps.com/) (REST-based, OAuth2)
+- **Timeline**: Must migrate before January 25, 2026
+- **Current Status**: Demo mode only
 
 ## Features
 
-- **Multi-Carrier Support**: Track packages from USPS, UPS, FedEx, and DHL
-- **Automatic Carrier Detection**: Automatically detects which carrier to use based on tracking number format
-- **Local Storage**: All data is stored locally in your browser - no server required
-- **Real-time Updates**: Refresh tracking information with a single click
-- **Smart Completion**: Packages are automatically marked as completed one week after delivery
-- **Clean Interface**: Modern, responsive design that works on desktop and mobile
+- **Dual Mode Operation**: Works as standalone link manager or enhanced server-based tracker
+- **Multi-Carrier Support**: USPS, UPS, FedEx, DHL
+- **Smart Detection**: Automatically detects carrier from tracking number patterns
+- **Local Storage**: Persists packages and settings in browser
+- **Auto-Completion**: Marks packages as completed 1 week after delivery
+- **Auto-Cleanup**: Removes old packages after 3 months
 - **Batch Input**: Add multiple tracking numbers at once
+- **Modern UI**: Responsive design with clean interface
 
-## How to Use
+## 🔗 **Standalone Mode** (Default)
+- Works as a simple web page - no server required
+- Opens directly in your browser from file system
+- Provides smart link management to carrier websites
+- Automatic carrier detection based on tracking numbers
+- Local storage for package management
 
-1. **Open the Application**: Simply open `index.html` in your web browser
-2. **Add Tracking Numbers**: Paste one or more tracking numbers in the text area (one per line)
-3. **Automatic Tracking**: The app will automatically detect the carrier and fetch tracking information
-4. **View Updates**: Click "Refresh All" to update all packages, or refresh individual packages
-5. **Manage Packages**: Remove packages you no longer want to track
+## 🟢 **Server Mode** (Enhanced)
+- Provides real-time tracking data when backend is available
+- Supports actual API integration with carriers
+- Enhanced tracking capabilities and status updates
+
+---
+
+## Quick Start
+
+### 🚀 Google Cloud Run Deployment (Recommended for Production)
+
+Deploy to Google Cloud Run for a production-ready, serverless deployment:
+
+```bash
+# Quick deploy to Cloud Run
+./deploy.sh your-project-id us-central1 --direct
+
+# Set up API credentials (optional)
+./setup-secrets.sh your-project-id
+```
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment guide.
+
+### Standalone Mode (No Installation)
+1. Download or clone this repository
+2. Open `index.html` in your browser
+3. Start adding tracking numbers!
+
+### Server Mode (Enhanced Features)
+1. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the server:
+   ```bash
+   npm start
+   ```
+
+3. Open http://localhost:3000 in your browser
+
+4. (Optional) Configure carrier API keys for real tracking:
+   ```bash
+   export USPS_API_KEY="your-usps-key"
+   export UPS_API_KEY="your-ups-key"
+   export FEDEX_API_KEY="your-fedex-key"
+   export DHL_API_KEY="your-dhl-key"
+   npm start
+   ```
+
+## Features
+
+### Core Features (Both Modes)
+- ✅ **Automatic Carrier Detection** - Recognizes USPS, UPS, FedEx, DHL tracking numbers
+- ✅ **Smart Link Management** - Direct links to official carrier tracking pages
+- ✅ **Local Storage** - Your packages are saved locally
+- ✅ **Batch Import** - Add multiple tracking numbers at once
+- ✅ **Package Management** - Auto-completion, cleanup, show/hide completed
+- ✅ **Mobile Responsive** - Works on all devices
+- ✅ **No Registration Required** - Privacy-focused design
+
+### Server Mode Additional Features
+- 🚀 **Real-Time Tracking** - Live status updates from carrier APIs
+- 🚀 **Enhanced Status Information** - Detailed delivery information
+- 🚀 **Automatic Refresh** - Background status updates
+- 🚀 **API Integration** - Direct carrier API connections
 
 ## Supported Carriers
 
-### USPS (United States Postal Service)
-- Priority Mail Express
-- Priority Mail
-- Ground Advantage
-- Various other USPS services
-- Supports tracking numbers: 22 digits starting with 94/93/92/95, Express Mail format, etc.
+| Carrier | Standalone Mode | Server Mode | Example Tracking Number |
+|---------|----------------|-------------|------------------------|
+| **USPS** | ✅ Links | 🚀 Real-time* | 9400136106193369031407 |
+| **UPS** | ✅ Links | 🚀 Real-time* | 1Z12345E0205271688 |
+| **FedEx** | ✅ Links | 🚀 Real-time* | 1234567890123456 |
+| **DHL** | ✅ Links | 🚀 Real-time* | 1234567890 |
 
-### UPS (United Parcel Service)
-- UPS Ground, Air, Express
-- Supports tracking numbers: 1Z followed by 16 characters, and other UPS formats
+*Real-time tracking requires API keys
+
+## Mode Detection
+
+The application automatically detects which mode it's running in:
+
+- **🔗 Link Mode**: Shows when no backend server is detected
+- **🟢 Server Mode**: Shows when backend APIs are available
+
+## File Structure
+
+```
+package-tracker/
+├── index.html              # Main application page
+├── style.css              # Application styles
+├── js/
+│   ├── app.js             # Main application logic
+│   ├── backend.js         # Backend service detection
+│   ├── storage.js         # Local storage management
+│   ├── trackerRegistry.js # Carrier registry
+│   └── carriers/          # Carrier implementations
+│       ├── base.js        # Base carrier class
+│       ├── usps.js        # USPS carrier
+│       ├── ups.js         # UPS carrier
+│       ├── fedex.js       # FedEx carrier
+│       └── dhl.js         # DHL carrier
+├── server.js              # Node.js backend server
+├── package.json           # Node.js dependencies
+└── README.md             # This file
+```
+
+## Usage
+
+### Adding Packages
+1. Paste tracking numbers in the text area (one per line)
+2. Click "Add Packages" - carrier detection is automatic
+3. Packages appear in your tracking list
+
+### Managing Packages
+- **Refresh All**: Update all package statuses
+- **Show/Hide Completed**: Toggle display of delivered packages
+- **Individual Actions**: Refresh, view on carrier site, or remove packages
+- **Clear All Data**: Remove all stored packages and settings
+
+### Package Status
+- **Delivered** ✅ - Package has been delivered
+- **In Transit** 🚚 - Package is on its way
+- **Exception** ⚠️ - Delivery issue or delay
+- **Pending** ⏳ - Processing or awaiting pickup
+- **Unavailable** 🔗 - Link to carrier website (standalone mode)
+
+## API Configuration
+
+### USPS (⚠️ Migration Required)
+
+**Current Status**: Demo mode only - requires migration to new API
+
+**Steps to get real USPS tracking**:
+1. Register at [USPS APIs Developer Portal](https://developer.usps.com/)
+2. Set up OAuth2 authentication
+3. Update implementation to use REST endpoints
+4. Set environment variable: `USPS_API_KEY=your_oauth_token`
+
+**New API Information**:
+- Base URL: `https://api.usps.com/`
+- Tracking Endpoint: `/tracking/v3/tracking/{trackingNumber}`
+- Authentication: OAuth2 Bearer token
+- Format: REST/JSON (not XML)
+
+### UPS
+
+**API Information**:
+- Developer Portal: [UPS Developer Kit](https://developer.ups.com/)
+- Tracking API: UPS Tracking API
+- Authentication: OAuth 2.0
+- Set environment variable: `UPS_API_KEY=your_api_key`
 
 ### FedEx
-- FedEx Express, Ground, SmartPost
-- Supports tracking numbers: 12-22 digits in various FedEx formats
+
+**API Information**:
+- Developer Portal: [FedEx Developer Portal](https://developer.fedex.com/)
+- Tracking API: FedEx Track API
+- Authentication: OAuth 2.0
+- Set environment variable: `FEDEX_API_KEY=your_api_key`
 
 ### DHL
-- DHL Express, eCommerce, International
-- Supports tracking numbers: 10-11 digits, letter-digit-letter format, and other DHL formats
 
-## Technical Architecture
+**API Information**:
+- Developer Portal: [DHL Developer Portal](https://developer.dhl.com/)
+- Tracking API: DHL Shipment Tracking API
+- Authentication: API Key
+- Set environment variable: `DHL_API_KEY=your_api_key`
 
-### Modular Design
-The application uses a modular architecture where each carrier is implemented as a separate class:
+## Real API Implementation
 
-- `BaseCarrier`: Abstract base class that all carriers extend
-- `USPSCarrier`, `UPSCarrier`, `FedExCarrier`, `DHLCarrier`: Specific implementations
-- `TrackerRegistry`: Manages all carriers and provides unified interface
-- `StorageManager`: Handles local data storage and management
-- `PackageTrackerApp`: Main application logic and UI management
+To implement real tracking APIs, you'll need to:
 
-### Files Structure
-```
-├── index.html              # Main HTML file
-├── style.css               # Styling and responsive design
-├── js/
-│   ├── storage.js          # Local storage management
-│   ├── trackerRegistry.js  # Carrier registry and management
-│   ├── app.js              # Main application logic
-│   └── carriers/
-│       ├── base.js         # Base carrier class
-│       ├── usps.js         # USPS implementation
-│       ├── ups.js          # UPS implementation
-│       ├── fedex.js        # FedEx implementation
-│       └── dhl.js          # DHL implementation
-```
+1. **Register with each carrier's developer portal**
+2. **Obtain API credentials**
+3. **Implement OAuth2 flows** (USPS, UPS, FedEx)
+4. **Update the carrier implementations** in `/js/carriers/` and `server.js`
+5. **Handle rate limits and error cases**
+6. **Set up proper environment variables**
 
-## Adding New Carriers
+### Example Environment Setup:
+```bash
+# USPS (New API - OAuth2)
+USPS_API_KEY=your_oauth_token
+USPS_CLIENT_ID=your_client_id
+USPS_CLIENT_SECRET=your_client_secret
 
-To add support for a new carrier:
+# UPS (OAuth2)
+UPS_API_KEY=your_api_key
+UPS_CLIENT_ID=your_client_id
+UPS_CLIENT_SECRET=your_client_secret
 
-1. Create a new file in `js/carriers/` (e.g., `newcarrier.js`)
-2. Extend the `BaseCarrier` class
-3. Implement required methods:
-   - `canHandle(trackingNumber)`: Detection logic
-   - `getTrackingInfo(trackingNumber)`: Tracking API integration
-4. Register the carrier in `trackerRegistry.js`
-5. Add the script tag to `index.html`
+# FedEx (OAuth2)
+FEDEX_API_KEY=your_api_key
+FEDEX_CLIENT_ID=your_client_id
+FEDEX_CLIENT_SECRET=your_client_secret
 
-Example:
-```javascript
-class NewCarrier extends BaseCarrier {
-    constructor() {
-        super();
-        this.name = 'New Carrier';
-        this.code = 'newcarrier';
-        this.color = '#FF6B6B';
-        this.trackingUrlTemplate = 'https://newcarrier.com/track/{trackingNumber}';
-    }
-
-    canHandle(trackingNumber) {
-        // Implement detection logic
-        return /^NC\d{10}$/.test(trackingNumber);
-    }
-
-    async getTrackingInfo(trackingNumber) {
-        // Implement API integration
-        // Return formatted tracking data
-    }
-}
+# DHL (API Key)
+DHL_API_KEY=your_api_key
 ```
 
-## Data Storage
+## Server Mode API Endpoints
 
-All data is stored locally in your browser using `localStorage`:
+When running in server mode, the following endpoints are available:
 
-- **Packages**: Tracking numbers, status, history
-- **Settings**: User preferences (show completed packages, etc.)
-- **No Server Required**: Everything runs in your browser
+- `GET /api/track/ping` - Health check
+- `GET /api/track/capabilities` - Get available carriers and features  
+- `POST /api/track` - Track a package
 
-## Package Lifecycle
+### Example API Usage:
 
-1. **Added**: Package is added to tracking list
-2. **Tracking**: Regular status updates from carrier APIs
-3. **Delivered**: Package is marked as delivered
-4. **Completed**: Automatically marked as completed one week after delivery
-5. **Cleanup**: Old completed packages (3+ months) are automatically removed
+```bash
+# Health check
+curl http://localhost:3000/api/track/ping
+
+# Get capabilities
+curl http://localhost:3000/api/track/capabilities
+
+# Track a package
+curl -X POST http://localhost:3000/api/track \
+  -H "Content-Type: application/json" \
+  -d '{"trackingNumber": "9400136106193369031407", "carrier": "usps"}'
+```
+
+## Privacy & Data
+
+- **Local Storage Only**: All package data is stored locally in your browser
+- **No External Tracking**: We don't track your usage or packages
+- **Direct Carrier Links**: Links go directly to official carrier websites
+- **API Keys**: When using server mode, API keys are stored as environment variables
 
 ## Browser Compatibility
 
-- **Modern Browsers**: Chrome, Firefox, Safari, Edge (latest versions)
-- **JavaScript ES6+**: Uses modern JavaScript features
-- **Local Storage**: Requires browser with localStorage support
-- **Fetch API**: Uses fetch for HTTP requests
-
-## Limitations & Notes
-
-- **Real Data Only**: No fake or mock data is displayed. Packages will show error messages when real tracking data is unavailable
-- **API Authentication**: Most carriers (UPS, FedEx, DHL) require API keys and can't be accessed directly from browser
-- **CORS Restrictions**: Direct API calls are blocked by CORS policies. The code includes CORS proxy attempts for USPS
-- **Official Links**: All packages provide direct links to official carrier tracking pages
-- **Production Use**: For real implementations, you would need server-side integration with carrier APIs
-
-## Development
-
-To customize or extend the application:
-
-1. **Local Development**: Simply open `index.html` in a browser
-2. **No Build Process**: Pure vanilla JavaScript - no compilation needed
-3. **Live Reload**: Use a local server for auto-refresh during development
-4. **Browser DevTools**: Use browser console to debug and test
-
-## Privacy & Security
-
-- **No Server**: All data stays in your browser
-- **No Tracking**: No analytics or external tracking
-- **Local Only**: Package information never leaves your device
-- **No Account Required**: No sign-up or login needed
+- Chrome 60+
+- Firefox 55+
+- Safari 12+
+- Edge 79+
 
 ## Contributing
 
-This is a demonstration project showing how to build a modular package tracking system. Feel free to:
-
-- Add new carriers
-- Improve the UI/UX
-- Add real API integrations
-- Enhance error handling
-- Add more features
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test in both standalone and server modes
+5. Submit a pull request
 
 ## License
 
-This project is for educational and demonstration purposes. Check carrier API terms of service before implementing real integrations. 
+MIT License - see LICENSE file for details
+
+## Changelog
+
+### v1.0.0
+- ✅ Dual-mode operation (standalone/server)
+- ✅ Automatic carrier detection
+- ✅ Smart link management
+- ✅ Local storage persistence
+- ✅ Mobile responsive design
+- ✅ Backend API framework for real tracking 
