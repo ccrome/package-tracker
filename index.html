@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-box"></i> Package Tracker</h1>
+            <p>Track all your packages in one place</p>
+        </header>
+
+        <div class="add-package-section">
+            <div class="input-group">
+                <textarea id="trackingInput" placeholder="Paste your tracking numbers here (one per line)&#10;Example:&#10;1Z12345E0205271688&#10;9405511899563197428748&#10;7777777777"></textarea>
+                <button id="addPackages" class="btn-primary">
+                    <i class="fas fa-plus"></i> Add Packages
+                </button>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="showCompleted" />
+                    <span class="checkmark"></span>
+                    Show completed packages
+                </label>
+            </div>
+            <div class="filter-group">
+                <button id="refreshAll" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh All
+                </button>
+                <button id="clearAllData" class="btn-danger">
+                    <i class="fas fa-trash-alt"></i> Clear All Data
+                </button>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="loading hidden">
+            <i class="fas fa-spinner fa-spin"></i> Fetching tracking information...
+        </div>
+
+        <div id="packagesContainer" class="packages-container">
+            <!-- Packages will be dynamically inserted here -->
+        </div>
+
+        <div id="emptyState" class="empty-state">
+            <i class="fas fa-search"></i>
+            <h3>No packages to track</h3>
+            <p>Add some tracking numbers above to get started!</p>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/carriers/base.js"></script>
+    <script src="js/carriers/usps.js"></script>
+    <script src="js/carriers/ups.js"></script>
+    <script src="js/carriers/fedex.js"></script>
+    <script src="js/carriers/dhl.js"></script>
+    <script src="js/trackerRegistry.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
