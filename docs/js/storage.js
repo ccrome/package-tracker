@@ -51,6 +51,11 @@ class StorageManager {
         let carrier = null;
         try {
             if (window.trackerRegistry && window.trackerRegistry.detectCarrier) {
+                // If no carriers are loaded, try to retry initialization
+                if (window.trackerRegistry.carriers.size === 0) {
+                    console.log('No carriers loaded, retrying initialization...');
+                    window.trackerRegistry.initializeCarriers();
+                }
                 carrier = window.trackerRegistry.detectCarrier(rawPackage.trackingNumber);
             }
         } catch (error) {

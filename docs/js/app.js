@@ -383,6 +383,12 @@ class PackageTrackerApp {
      * Render individual package card
      */
     renderPackageCard(packageData) {
+        // Ensure trackerRegistry is available and has carriers
+        if (trackerRegistry.carriers.size === 0) {
+            console.log('TrackerRegistry has no carriers, retrying initialization...');
+            trackerRegistry.initializeCarriers();
+        }
+        
         const carrier = trackerRegistry.getCarrier(packageData.carrier);
         const carrierName = carrier ? carrier.name : 'Unknown';
         

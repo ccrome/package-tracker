@@ -11,11 +11,48 @@ class TrackerRegistry {
      * Initialize all available carriers
      */
     initializeCarriers() {
-        // Register all carriers
-        this.registerCarrier(new USPSCarrier());
-        this.registerCarrier(new UPSCarrier());
-        this.registerCarrier(new FedExCarrier());
-        this.registerCarrier(new DHLCarrier());
+        // Register all carriers with safety checks
+        try {
+            if (window.USPSCarrier) {
+                this.registerCarrier(new USPSCarrier());
+            } else {
+                console.warn('USPSCarrier not available');
+            }
+        } catch (error) {
+            console.error('Failed to register USPS carrier:', error);
+        }
+
+        try {
+            if (window.UPSCarrier) {
+                this.registerCarrier(new UPSCarrier());
+            } else {
+                console.warn('UPSCarrier not available');
+            }
+        } catch (error) {
+            console.error('Failed to register UPS carrier:', error);
+        }
+
+        try {
+            if (window.FedExCarrier) {
+                this.registerCarrier(new FedExCarrier());
+            } else {
+                console.warn('FedExCarrier not available');
+            }
+        } catch (error) {
+            console.error('Failed to register FedEx carrier:', error);
+        }
+
+        try {
+            if (window.DHLCarrier) {
+                this.registerCarrier(new DHLCarrier());
+            } else {
+                console.warn('DHLCarrier not available');
+            }
+        } catch (error) {
+            console.error('Failed to register DHL carrier:', error);
+        }
+
+        console.log(`TrackerRegistry initialized with ${this.carriers.size} carriers`);
     }
 
     /**
@@ -239,4 +276,32 @@ class TrackerRegistry {
 // Export the class and create global instance
 window.TrackerRegistry = TrackerRegistry;
 window.trackerRegistry = new TrackerRegistry();
-window.trackerRegistry.initializeCarriers(); 
+
+// Add a function to retry initialization if carriers failed to load
+window.retryCarrierInitialization = function() {
+    if (window.trackerRegistry.carriers.size === 0) {
+        console.log('Retrying carrier initialization...');
+        window.trackerRegistry.initializeCarriers();
+    }
+};
+
+// Try to re-initialize carriers after a delay to handle loading issues
+setTimeout(() => {
+    window.retryCarrierInitialization();
+}, 500);
+
+// Add debug function for testing carrier detection
+window.testCarrierDetection = function(trackingNumber) {
+    console.log(`Testing carrier detection for: ${trackingNumber}`);
+    console.log(`Available carriers: ${window.trackerRegistry.carriers.size}`);
+    console.log('Carrier list:', Array.from(window.trackerRegistry.carriers.keys()));
+    
+    const carrier = window.trackerRegistry.detectCarrier(trackingNumber);
+    if (carrier) {
+        console.log(`✓ Detected: ${carrier.name} (${carrier.code})`);
+        console.log(`URL: ${carrier.getUrl(trackingNumber)}`);
+    } else {
+        console.log('✗ No carrier detected');
+    }
+    return carrier;
+}; 
