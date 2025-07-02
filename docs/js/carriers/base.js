@@ -38,14 +38,21 @@ class BaseCarrier {
             }
         }
 
-        // Try any carrier-specific implementations
-        try {
-            const result = await this.trackDirect(trackingNumber);
-            if (result) {
-                return result;
+        // Skip direct API calls in standalone mode to prevent CORS errors on GitHub Pages
+        const isStandaloneMode = !window.backendService || !window.backendService.isAvailable;
+        
+        if (!isStandaloneMode) {
+            // Try any carrier-specific implementations only when backend is available
+            try {
+                const result = await this.trackDirect(trackingNumber);
+                if (result) {
+                    return result;
+                }
+            } catch (error) {
+                console.log(`Direct tracking failed for ${this.name}:`, error);
             }
-        } catch (error) {
-            console.log(`Direct tracking failed for ${this.name}:`, error);
+        } else {
+            console.log(`${this.name}: Skipping direct API calls in standalone mode (CORS restrictions)`);
         }
 
         // Return unavailable status with link
