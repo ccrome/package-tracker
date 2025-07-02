@@ -39,9 +39,16 @@ A JavaScript application that tracks package status from multiple carriers (USPS
 
 ## Quick Start
 
-### 🚀 Google Cloud Run Deployment (Recommended for Production)
+### 🌐 GitHub Pages (Recommended for Frontend)
 
-Deploy to Google Cloud Run for a production-ready, serverless deployment:
+The web application is automatically deployed to GitHub Pages and available at:
+```
+https://yourusername.github.io/package-tracker/
+```
+
+### 🚀 Google Cloud Run Deployment (For Backend Features)
+
+Deploy to Google Cloud Run for a production-ready, serverless deployment with enhanced tracking:
 
 ```bash
 # Quick deploy to Cloud Run
@@ -53,9 +60,35 @@ Deploy to Google Cloud Run for a production-ready, serverless deployment:
 
 See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment guide.
 
-### Standalone Mode (No Installation)
+### GitHub Pages Setup
+
+To enable GitHub Pages for your repository:
+
+1. Go to your repository on GitHub
+2. Click **Settings** → **Pages**
+3. Under **Source**, select **GitHub Actions**
+4. The workflow will automatically deploy when you push to main branch
+
+Alternative setup (simpler, no GitHub Actions needed):
+1. Go to **Settings** → **Pages**
+2. Under **Source**, select **Deploy from a branch**
+3. Choose **main** branch and **docs** folder
+4. Click **Save**
+
+The GitHub Actions workflow provides more control and will automatically deploy the `docs` directory whenever you push changes to the main branch.
+
+### Standalone Mode (Local Development)
 1. Download or clone this repository
-2. Open `index.html` in your browser
+2. Serve the `docs` directory using any static server:
+   ```bash
+   # Using Python
+   cd docs && python -m http.server 8000
+   
+   # Using Node.js
+   cd docs && npx http-server
+   
+   # Or simply open docs/index.html in your browser
+   ```
 3. Start adding tracking numbers!
 
 ### Server Mode (Enhanced Features)
@@ -119,21 +152,32 @@ The application automatically detects which mode it's running in:
 
 ```
 package-tracker/
-├── index.html              # Main application page
-├── style.css              # Application styles
-├── js/
-│   ├── app.js             # Main application logic
-│   ├── backend.js         # Backend service detection
-│   ├── storage.js         # Local storage management
-│   ├── trackerRegistry.js # Carrier registry
-│   └── carriers/          # Carrier implementations
-│       ├── base.js        # Base carrier class
-│       ├── usps.js        # USPS carrier
-│       ├── ups.js         # UPS carrier
-│       ├── fedex.js       # FedEx carrier
-│       └── dhl.js         # DHL carrier
+├── docs/                   # Web frontend (deployed to GitHub Pages)
+│   ├── index.html         # Main application page
+│   ├── style.css          # Application styles
+│   ├── js/
+│   │   ├── app.js         # Main application logic
+│   │   ├── backend.js     # Backend service detection
+│   │   ├── storage.js     # Local storage management
+│   │   ├── trackerRegistry.js # Carrier registry
+│   │   └── carriers/      # Carrier implementations
+│   │       ├── base.js    # Base carrier class
+│   │       ├── usps.js    # USPS carrier
+│   │       ├── ups.js     # UPS carrier
+│   │       ├── fedex.js   # FedEx carrier
+│   │       └── dhl.js     # DHL carrier
+│   └── README.md          # Frontend documentation
+├── .github/workflows/     # GitHub Actions
+│   └── deploy-pages.yml   # Auto-deploy to GitHub Pages
+├── tests/                 # Test suite
+│   ├── test-runner.js     # Custom test framework
+│   ├── test-setup.js      # Test environment setup
+│   ├── carrier-tests.js   # Carrier detection tests
+│   ├── registry-tests.js  # Registry functionality tests
+│   └── storage-tests.js   # Storage system tests
 ├── server.js              # Node.js backend server
 ├── package.json           # Node.js dependencies
+├── DEPLOYMENT.md          # Deployment guide
 └── README.md             # This file
 ```
 
